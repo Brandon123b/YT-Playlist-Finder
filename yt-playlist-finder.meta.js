@@ -1,12 +1,16 @@
 // ==UserScript==
 // @name         YT Playlist Finder
 // @namespace    https://github.com/Brandon123b/YT-Playlist-Finder
-// @version      0.1.0
+// @version      0.3.0
 // @description  Find a YouTube playlist containing the current video from the same artist
 // @author       Brandon123b
-// @match        https://www.youtube.com/watch*
+// @match        https://www.youtube.com/*
+// @match        https://youtube.com/*
 // @icon         https://www.youtube.com/favicon.ico
-// @grant        none
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_deleteValue
+// @grant        GM_listValues
 // @license      MIT
 // @homepageURL  https://github.com/Brandon123b/YT-Playlist-Finder
 // @supportURL   https://github.com/Brandon123b/YT-Playlist-Finder/issues
