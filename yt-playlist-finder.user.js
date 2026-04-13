@@ -353,27 +353,34 @@
 
     // ===== API: Fetch Playlist Video IDs =====
 
+    function extractVideoIdsFromData(data, videoIds) {
+        if (!data || typeof data !== "object") return;
+        if (data.playlistVideoRenderer?.videoId) {
+            videoIds.push(data.playlistVideoRenderer.videoId);
+            return;
+        }
+        for (const key of Object.keys(data)) {
+            const val = data[key];
+            if (Array.isArray(val)) val.forEach(item => extractVideoIdsFromData(item, videoIds));
+            else if (val && typeof val === "object") extractVideoIdsFromData(val, videoIds);
+        }
+    }
+
     async function fetchPlaylistVideoIds(playlistId, targetVideoId) {
-        const res = await fetch(`/playlist?list=${playlistId}`);
-        if (!res.ok) throw new Error(`Failed to fetch playlist page: ${res.status}`);
+        const tube = getInnerTubeContext();
+        if (!tube) throw new Error("Could not get InnerTube context");
 
-        const ytData = extractYtInitialData(await res.text());
-        if (!ytData) throw new Error("Could not parse ytInitialData from playlist page");
+        // Use InnerTube browse directly — returns ~20-50KB JSON instead of ~500KB+ HTML
+        const res = await fetch(`/youtubei/v1/browse?key=${tube.apiKey}&prettyPrint=false`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ context: tube.context, browseId: "VL" + playlistId }),
+        });
+        if (!res.ok) throw new Error(`InnerTube browse failed: ${res.status}`);
 
+        const ytData = await res.json();
         const videoIds = [];
-
-        (function extract(obj) {
-            if (!obj || typeof obj !== "object") return;
-            if (obj.playlistVideoRenderer?.videoId) {
-                videoIds.push(obj.playlistVideoRenderer.videoId);
-                return;
-            }
-            for (const key of Object.keys(obj)) {
-                const val = obj[key];
-                if (Array.isArray(val)) val.forEach(extract);
-                else if (val && typeof val === "object") extract(val);
-            }
-        })(ytData);
+        extractVideoIdsFromData(ytData, videoIds);
 
         if (targetVideoId && videoIds.includes(targetVideoId)) {
             return { videoIds, containsTarget: true };
@@ -494,6 +501,13 @@
             .ytpf-retry { background: #383838; border: none; color: #3ea6ff; padding: 4px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; }
             .ytpf-retry:hover { background: #4a4a4a; }
 
+            .ytpf-filter-bar { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #303030; flex-shrink: 0; align-items: center; }
+            .ytpf-search { flex: 1; background: #181818; border: 1px solid #383838; border-radius: 8px; padding: 6px 10px; color: #f1f1f1; font-size: 13px; outline: none; font-family: inherit; }
+            .ytpf-search:focus { border-color: #3ea6ff; }
+            .ytpf-search::placeholder { color: #717171; }
+            .ytpf-sort-btn { background: #383838; border: none; color: #aaa; padding: 4px 10px; border-radius: 8px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+            .ytpf-sort-btn:hover { background: #4a4a4a; color: #f1f1f1; }
+
             .ytpf-footer { padding: 8px 16px; font-size: 11px; color: #717171; border-top: 1px solid #383838; text-align: center; flex-shrink: 0; }
 
             .ytpf-log-toggle { padding: 6px 16px; font-size: 11px; color: #717171; cursor: pointer; border-top: 1px solid #383838; flex-shrink: 0; user-select: none; }
@@ -517,6 +531,8 @@
     let logEntries = [];
     let currentModal = null;
     let activeTab = "matched";
+    let searchQuery = "";
+    let allSortMode = "az"; // "az", "za", "count-desc", "count-asc"
 
     function isBackgroundLoading() {
         return bgTask !== null && !bgTask.done && bgGeneration === bgTask.generation;
@@ -660,6 +676,7 @@
         tabMatched.textContent = "Matched (0)";
         tabMatched.addEventListener("click", () => {
             activeTab = "matched";
+            searchQuery = "";
             tabMatched.classList.add("ytpf-tab-active");
             tabAll.classList.remove("ytpf-tab-active");
             renderActiveTab();
@@ -787,6 +804,9 @@
         if (tabA) tabA.textContent = `All (${all})`;
     }
 
+    const SORT_LABELS = { "az": "A\u2192Z", "za": "Z\u2192A", "count-desc": "Most videos", "count-asc": "Fewest videos" };
+    const SORT_CYCLE = ["az", "za", "count-desc", "count-asc"];
+
     function renderActiveTab() {
         const content = document.getElementById("ytpf-content");
         if (!content || !bgTask) return;
@@ -818,15 +838,63 @@
                 return;
             }
         } else {
-            playlists = [...bgTask.playlists]
-                .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+            // Filter bar for All tab
+            const filterBar = document.createElement("div");
+            filterBar.className = "ytpf-filter-bar";
+
+            const searchInput = document.createElement("input");
+            searchInput.className = "ytpf-search";
+            searchInput.type = "text";
+            searchInput.placeholder = "Search playlists\u2026";
+            searchInput.value = searchQuery;
+            searchInput.addEventListener("input", (e) => {
+                searchQuery = e.target.value;
+                renderActiveTab();
+                // Re-focus and restore cursor position after re-render
+                const input = document.querySelector(".ytpf-search");
+                if (input) { input.focus(); input.selectionStart = input.selectionEnd = searchQuery.length; }
+            });
+
+            const sortBtn = document.createElement("button");
+            sortBtn.className = "ytpf-sort-btn";
+            sortBtn.textContent = SORT_LABELS[allSortMode];
+            sortBtn.title = "Change sort order";
+            sortBtn.addEventListener("click", () => {
+                const idx = SORT_CYCLE.indexOf(allSortMode);
+                allSortMode = SORT_CYCLE[(idx + 1) % SORT_CYCLE.length];
+                renderActiveTab();
+            });
+
+            filterBar.append(searchInput, sortBtn);
+            content.appendChild(filterBar);
+
+            playlists = [...bgTask.playlists];
+
+            // Apply search filter
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                playlists = playlists.filter(pl => pl.title.toLowerCase().includes(q));
+            }
+
+            // Apply sort
+            if (allSortMode === "az") {
+                playlists.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+            } else if (allSortMode === "za") {
+                playlists.sort((a, b) => b.title.localeCompare(a.title, undefined, { sensitivity: "base" }));
+            } else if (allSortMode === "count-desc") {
+                playlists.sort((a, b) => b.videoCount - a.videoCount);
+            } else {
+                playlists.sort((a, b) => a.videoCount - b.videoCount);
+            }
 
             if (playlists.length === 0) {
                 const msgDiv = document.createElement("div");
                 msgDiv.className = "ytpf-empty";
-                if (loading) {
+                if (loading && bgTask.playlists.length === 0) {
                     msgDiv.appendChild(createSpinner());
                     msgDiv.append(" Loading playlists\u2026");
+                } else if (searchQuery) {
+                    msgDiv.textContent = "No playlists match your search.";
                 } else {
                     msgDiv.textContent = "This channel has no playlists.";
                 }
