@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YT Playlist Finder
 // @namespace    https://github.com/Brandon123b/YT-Playlist-Finder
-// @version      0.3.0
+// @version      0.3.1
 // @description  Find a YouTube playlist containing the current video from the same artist
 // @author       Brandon123b
 // @match        https://www.youtube.com/*
@@ -11,6 +11,7 @@
 // @grant        GM_getValue
 // @grant        GM_deleteValue
 // @grant        GM_listValues
+// @grant        GM_registerMenuCommand
 // @license      MIT
 // @homepageURL  https://github.com/Brandon123b/YT-Playlist-Finder
 // @supportURL   https://github.com/Brandon123b/YT-Playlist-Finder/issues
@@ -583,9 +584,12 @@
         document.getElementById(BUTTON_ID)?.remove();
     }
 
+    let buttonInjecting = false;
+
     async function injectButton() {
+        if (buttonInjecting) return;
+        buttonInjecting = true;
         removeButton();
-        // Let YouTube finish rebuilding the DOM after SPA navigation
         await sleep(800);
         removeButton();
         try {
@@ -603,6 +607,27 @@
             container.appendChild(btn);
         } catch (e) {
             console.warn(LOG_PREFIX, "Button injection failed:", e.message);
+        } finally {
+            buttonInjecting = false;
+        }
+    }
+
+    let buttonObserver = null;
+
+    function startButtonWatch() {
+        stopButtonWatch();
+        buttonObserver = new MutationObserver(() => {
+            if (location.pathname === "/watch" && !document.getElementById(BUTTON_ID)) {
+                injectButton();
+            }
+        });
+        buttonObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    function stopButtonWatch() {
+        if (buttonObserver) {
+            buttonObserver.disconnect();
+            buttonObserver = null;
         }
     }
 
@@ -1148,8 +1173,10 @@
 
         if (location.pathname === "/watch") {
             injectButton();
+            startButtonWatch();
         } else {
             removeButton();
+            stopButtonWatch();
         }
     }
 
@@ -1158,8 +1185,11 @@
         injectStyles();
         document.addEventListener("yt-navigate-finish", onNavigate);
 
+        GM_registerMenuCommand("Find Playlists", onButtonClick);
+
         if (location.pathname === "/watch") {
             injectButton();
+            startButtonWatch();
         }
     }
 
