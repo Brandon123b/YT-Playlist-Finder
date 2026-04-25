@@ -67,7 +67,7 @@ If the in-page button ever fails to appear, you can also open the panel from the
 ## Notes
 
 - Uses YouTube's internal API directly — no third-party servers, no API keys, no quotas. Everything runs in your browser.
-- Works on `youtube.com`. Does not work on YouTube Music or YouTube Kids.
+- Works on `youtube.com`. Does not work on YouTube Music or YouTube Kids. (Probably)
 
 ## License
 
