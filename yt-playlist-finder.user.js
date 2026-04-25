@@ -14,6 +14,7 @@
 // @grant        GM_registerMenuCommand
 // @license      MIT
 // @homepageURL  https://github.com/Brandon123b/YT-Playlist-Finder
+// @homepageURL  https://greasyfork.org/en/scripts/575319-yt-playlist-finder
 // @supportURL   https://github.com/Brandon123b/YT-Playlist-Finder/issues
 // @downloadURL  https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/yt-playlist-finder.user.js
 // @updateURL    https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/yt-playlist-finder.meta.js
