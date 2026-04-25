@@ -6,7 +6,9 @@
 [![Greasy Fork](https://img.shields.io/greasyfork/dt/575319?label=Greasy%20Fork%20installs&color=670000)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
 [![Install](https://img.shields.io/badge/install-yt--playlist--finder.user.js-3ea6ff?logo=youtube&logoColor=white)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
 
-![YT Playlist Finder demo](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Demo.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Demo.gif" alt="YT Playlist Finder demo" width="720">
+</p>
 
 ## What it does
 
@@ -26,17 +28,23 @@ Click the button next to **Like / Share** on any video, and a panel opens listin
 
 ## Screenshots
 
-**The button**, added to every video page next to Like / Share
+<p align="center"><strong>The button</strong>, added to every video page next to Like / Share</p>
 
-![Button location](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Main.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Main.png" alt="Button location" width="600">
+</p>
 
-**Matched** — playlists that contain the video you're watching
+<p align="center"><strong>Matched</strong> — playlists that contain the video you're watching</p>
 
-![Matched tab](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/modal.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/modal.png" alt="Matched tab" width="500">
+</p>
 
-**All** — search and sort the channel's full playlist library
+<p align="center"><strong>All</strong> — search and sort the channel's full playlist library</p>
 
-![All tab](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/modal2.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/modal2.png" alt="All tab" width="500">
+</p>
 
 ## Installation
 
