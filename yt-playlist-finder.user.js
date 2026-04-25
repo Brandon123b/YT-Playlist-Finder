@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YT Playlist Finder
 // @namespace    https://github.com/Brandon123b/YT-Playlist-Finder
-// @version      0.3.1
+// @version      0.9.0
 // @description  Find a YouTube playlist containing the current video from the same artist
 // @author       Brandon123b
 // @match        https://www.youtube.com/*
@@ -34,29 +34,6 @@
     const LOG_PREFIX = "[YT Playlist Finder]";
 
     // ===== Utilities =====
-
-    function waitForElement(selector, timeout = 10000) {
-        return new Promise((resolve, reject) => {
-            const el = document.querySelector(selector);
-            if (el) return resolve(el);
-
-            const observer = new MutationObserver(() => {
-                const el = document.querySelector(selector);
-                if (el) {
-                    observer.disconnect();
-                    clearTimeout(timer);
-                    resolve(el);
-                }
-            });
-
-            const timer = setTimeout(() => {
-                observer.disconnect();
-                reject(new Error(`waitForElement("${selector}") timed out after ${timeout}ms`));
-            }, timeout);
-
-            observer.observe(document.body, { childList: true, subtree: true });
-        });
-    }
 
     function extractYtInitialData(html) {
         const markers = ["var ytInitialData = ", "ytInitialData = "];
@@ -434,7 +411,7 @@
                 height: 36px;
                 box-sizing: border-box;
                 flex-shrink: 0;
-                margin-left: 8px;
+                margin-right: 8px;
             }
             .ytpf-btn:hover { background: rgba(62, 166, 255, 0.5); }
             .ytpf-btn svg { width: 20px; height: 20px; }
@@ -576,59 +553,153 @@
         body.scrollTop = body.scrollHeight;
     }
 
-    // ===== UI: Button =====
+    // ===== Button Injection =====
+    //
+    // YouTube is a Polymer-based SPA that frequently re-renders the watch-page
+    // actions row, which removes any button we attach. To survive that, we
+    // keep ensureButton() cheap, synchronous and idempotent, and run it from
+    // three independent recovery sources:
+    //   1. A MutationObserver on document.body (debounced via rAF).
+    //   2. YouTube's own SPA navigation events.
+    //   3. A periodic safety interval as a backstop.
+    // The button is re-added within one animation frame of any removal.
 
     const BUTTON_ID = "ytpf-button";
+    const BUTTON_CHECK_INTERVAL_MS = 500;
+    const POST_INSERT_RECHECK_MS = 250;
 
-    function removeButton() {
-        document.getElementById(BUTTON_ID)?.remove();
+    // Selectors are deliberately all scoped under ytd-watch-metadata. Bare
+    // IDs like "#flexible-item-buttons" match dozens of elements on a watch
+    // page (every video card in the sidebar has one), and we'd risk
+    // attaching to a hidden one inside a recommendation tile.
+    //
+    // Ordered by priority: #top-level-buttons-computed (the like/share row)
+    // is the most reliable — always visible, always present.
+    // #flexible-item-buttons is YouTube's overflow slot and gets hidden when
+    // the row runs out of horizontal space, so it's only a last resort.
+    const CONTAINER_SELECTORS = [
+        "ytd-watch-metadata #top-level-buttons-computed",
+        "ytd-watch-metadata #actions-inner",
+        "ytd-watch-metadata #actions",
+        "ytd-watch-metadata #flexible-item-buttons",
+    ];
+
+    const LIKE_SEGMENT_SELECTORS = [
+        "segmented-like-dislike-button-view-model",
+        "ytd-segmented-like-dislike-button-renderer",
+        "like-button-view-model",
+    ].join(", ");
+
+    function isVisible(el) {
+        if (!el || !el.isConnected) return false;
+        if (el.hidden) return false;
+        if (el.offsetParent !== null) return true;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 || rect.height > 0;
     }
 
-    let buttonInjecting = false;
-
-    async function injectButton() {
-        if (buttonInjecting) return;
-        buttonInjecting = true;
-        removeButton();
-        await sleep(800);
-        removeButton();
-        try {
-            const container = await waitForElement(
-                "#flexible-item-buttons, #top-level-buttons-computed, ytd-watch-metadata #actions"
-            );
-            if (document.getElementById(BUTTON_ID)) return;
-
-            const btn = document.createElement("button");
-            btn.id = BUTTON_ID;
-            btn.className = "ytpf-btn";
-            btn.title = "Find Playlists";
-            btn.appendChild(createPlaylistIcon());
-            btn.addEventListener("click", onButtonClick);
-            container.appendChild(btn);
-        } catch (e) {
-            console.warn(LOG_PREFIX, "Button injection failed:", e.message);
-        } finally {
-            buttonInjecting = false;
+    // Returns every connected container, sorted with visible ones first.
+    function findCandidateContainers() {
+        const seen = new Set();
+        const visible = [];
+        const hidden = [];
+        for (const sel of CONTAINER_SELECTORS) {
+            for (const el of document.querySelectorAll(sel)) {
+                if (!el.isConnected || seen.has(el)) continue;
+                seen.add(el);
+                (isVisible(el) ? visible : hidden).push(el);
+            }
         }
+        return [...visible, ...hidden];
+    }
+
+    function buildButton() {
+        const btn = document.createElement("button");
+        btn.id = BUTTON_ID;
+        btn.className = "ytpf-btn";
+        btn.title = "Find Playlists";
+        btn.appendChild(createPlaylistIcon());
+        btn.addEventListener("click", onButtonClick);
+        return btn;
+    }
+
+    // Insert at the very start of the action row so the button sits on the
+    // far left, before the like button.
+    function insertButtonInto(container, btn) {
+        const like = container.querySelector(LIKE_SEGMENT_SELECTORS);
+        if (like) {
+            let anchor = like;
+            while (anchor.parentElement && anchor.parentElement !== container) {
+                anchor = anchor.parentElement;
+            }
+            if (anchor.parentElement === container) {
+                anchor.before(btn);
+                return;
+            }
+        }
+        container.prepend(btn);
+    }
+
+    function ensureButton() {
+        if (location.pathname !== "/watch") {
+            document.getElementById(BUTTON_ID)?.remove();
+            return;
+        }
+
+        const existing = document.getElementById(BUTTON_ID);
+        if (existing) {
+            if (existing.isConnected
+                && existing.parentElement?.isConnected
+                && isVisible(existing)) {
+                return;
+            }
+            existing.remove();
+        }
+
+        const candidates = findCandidateContainers();
+        if (candidates.length === 0) return;
+
+        // Try each candidate, verifying the button is actually visible after
+        // insertion. If a container silently swallows our button (e.g. an
+        // overflow row with no space), fall through to the next.
+        for (const container of candidates) {
+            const btn = buildButton();
+            insertButtonInto(container, btn);
+
+            const rect = btn.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0 && isVisible(btn)) {
+                // Polymer can hide our button a few frames after insertion
+                // (post-measurement reflow). Re-check shortly so we can fall
+                // through to a different container if that happens.
+                setTimeout(scheduleEnsureButton, POST_INSERT_RECHECK_MS);
+                return;
+            }
+            btn.remove();
+        }
+    }
+
+    let ensureScheduled = false;
+    function scheduleEnsureButton() {
+        if (ensureScheduled) return;
+        ensureScheduled = true;
+        requestAnimationFrame(() => {
+            ensureScheduled = false;
+            ensureButton();
+        });
     }
 
     let buttonObserver = null;
+    let buttonInterval = null;
 
     function startButtonWatch() {
-        stopButtonWatch();
-        buttonObserver = new MutationObserver(() => {
-            if (location.pathname === "/watch" && !document.getElementById(BUTTON_ID)) {
-                injectButton();
-            }
-        });
-        buttonObserver.observe(document.body, { childList: true, subtree: true });
-    }
-
-    function stopButtonWatch() {
-        if (buttonObserver) {
-            buttonObserver.disconnect();
-            buttonObserver = null;
+        if (!buttonObserver) {
+            buttonObserver = new MutationObserver(scheduleEnsureButton);
+            buttonObserver.observe(document.body, { childList: true, subtree: true });
         }
+        if (buttonInterval == null) {
+            buttonInterval = setInterval(ensureButton, BUTTON_CHECK_INTERVAL_MS);
+        }
+        ensureButton();
     }
 
     // ===== UI: Modal =====
@@ -1136,12 +1207,19 @@
 
     // ===== Main Entry Point =====
 
+    // Invoked by the in-page button AND by the Tampermonkey menu command,
+    // so it has to handle the case where the user isn't on a video page.
     async function onButtonClick() {
         if (currentModal) { closeModal(); return; }
 
-        const pageInfo = getPageInfo();
+        if (location.pathname !== "/watch") {
+            alert("Open a YouTube video first to use YT Playlist Finder.");
+            return;
+        }
 
+        const pageInfo = getPageInfo();
         if (!pageInfo.videoId || !pageInfo.channelId) {
+            alert("Couldn't read this video's info yet — try again in a moment.");
             return;
         }
 
@@ -1162,7 +1240,7 @@
     function onNavigate() {
         closeModal();
 
-        // Save any in-progress work before cancelling
+        // Save any in-progress work before cancelling.
         if (bgTask && bgTask.playlists.length > 0) {
             saveBgTaskToCache();
         }
@@ -1171,27 +1249,35 @@
         bgTask = null;
         logEntries = [];
 
-        if (location.pathname === "/watch") {
-            injectButton();
-            startButtonWatch();
-        } else {
-            removeButton();
-            stopButtonWatch();
-        }
+        ensureButton();
     }
 
     function init() {
-        console.log(LOG_PREFIX, "Initialized");
         injectStyles();
         document.addEventListener("yt-navigate-finish", onNavigate);
+        document.addEventListener("yt-page-data-updated", scheduleEnsureButton);
+        document.addEventListener("yt-page-data-fetched", scheduleEnsureButton);
+        window.addEventListener("popstate", scheduleEnsureButton);
 
+        // The menu command is the official fallback if the in-page button
+        // ever fails to appear (e.g. YouTube ships a layout change we don't
+        // recognize yet).
         GM_registerMenuCommand("Find Playlists", onButtonClick);
 
-        if (location.pathname === "/watch") {
-            injectButton();
-            startButtonWatch();
-        }
+        // Always run the watcher — ensureButton() is a no-op off /watch.
+        // This guarantees recovery even if a navigation event is missed or
+        // YouTube re-renders the actions row at any later time.
+        startButtonWatch();
+
+        console.info(LOG_PREFIX, "loaded");
     }
 
-    init();
+    // Userscripts usually run at document-end, but on some managers / corner
+    // cases they fire earlier. Wait for document.body so MutationObserver
+    // can attach.
+    if (document.body) {
+        init();
+    } else {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+    }
 })();

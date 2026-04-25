@@ -1,51 +1,66 @@
 # YT Playlist Finder
 
-A Tampermonkey userscript that adds a button to YouTube video pages to find which of the channel's playlists contain the current video. Useful for discovering series, collections, or themed playlists from a creator while watching their content.
+> Instantly find every playlist on a YouTube channel that contains the video you're watching.
 
-## How It Works
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Greasy Fork](https://img.shields.io/greasyfork/dt/575319?label=Greasy%20Fork%20installs&color=670000)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
+[![Install](https://img.shields.io/badge/install-yt--playlist--finder.user.js-3ea6ff?logo=youtube&logoColor=white)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
 
-When you're watching a YouTube video, a small button appears in the action bar (next to Like, Share, Download, etc.). Clicking it opens a modal that:
+![YT Playlist Finder demo](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Demo.gif)
 
-1. Fetches all playlists from the video's channel
-2. Checks each playlist to see if it contains the current video
-3. Shows you the results in two tabs: **Matched** (playlists with this video) and **All** (every playlist)
+## What it does
 
-Clicking a matched playlist opens the current video within that playlist context, so you can see other videos in the series. Clicking an unmatched playlist opens the playlist page directly.
+YouTube doesn't tell you which playlists a video belongs to. This script does.
 
-All data is fetched using YouTube's internal API — no API key needed, no quotas, no configuration.
+Click the button next to **Like / Share** on any video, and a panel opens listing every playlist **on the same channel** that contains the video — plus every other playlist the channel has made, so you can browse the rest.
+
+> **Heads up:** This only finds playlists made by the **same channel** that uploaded the video — not playlists made by other users.
 
 ## Features
 
-- **Matched / All tabs** — Quickly see which playlists contain the current video, or browse all playlists from the channel
-- **Background loading** — Closing the modal doesn't stop loading. Reopen it anytime to see live progress
-- **Caching** — Playlist data is cached for 24 hours. Revisiting the same channel loads instantly
-- **Resume from cache** — If loading is interrupted (page refresh, navigation), it picks up where it left off
-- **Search and sort** — Filter playlists by name and sort by title or video count on the All tab
-- **Activity log** — Collapsible log panel in the modal showing real-time loading activity
-- **Cache controls** — Refresh, Clear Channel, and Clear All buttons for managing cached data
-- **SPA-aware** — Handles YouTube's single-page navigation, re-injects the button on each video page
+- Find every playlist on a channel that contains the current video
+- Browse and search the channel's full playlist library
+- Click a matched playlist to keep watching the video *inside* that playlist
+- Caches results for 24 hours — repeat visits load instantly
+- No API key, no setup, no configuration
+
+## Screenshots
+
+**The button**, added to every video page next to Like / Share
+
+![Button location](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Main.png)
+
+**Matched** — playlists that contain the video you're watching
+
+![Matched tab](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/modal.png)
+
+**All** — search and sort the channel's full playlist library
+
+![All tab](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/modal2.png)
 
 ## Installation
 
-**Prerequisites:** Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension.
+1. Install a userscript manager — [Tampermonkey](https://www.tampermonkey.net/) (recommended), [Violentmonkey](https://violentmonkey.github.io/), or [Greasemonkey](https://www.greasespot.net/).
+2. **[Install YT Playlist Finder](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)** from Greasy Fork.
+3. Open any YouTube video — the button appears next to Like / Share.
 
-**Install the script:**
+## Usage
 
-1. **[Click here to install](https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/yt-playlist-finder.user.js)**
-2. Tampermonkey will open and show the script — click **Install**
-3. Navigate to any YouTube video and the button will appear in the action bar
+Click the playlist-icon button on any YouTube video.
 
-## Updating
+- The **Matched** tab shows playlists from this channel that contain the current video. Click one to keep watching the video inside that playlist.
+- The **All** tab shows every playlist on the channel, with search and sort.
+- Use **Refresh**, **Clear Channel**, or **Clear All** to manage cached data.
 
-Tampermonkey checks for updates automatically via the `@updateURL` metadata. You can also manually update:
+> **The first scan of a channel takes a moment.** The script has to fetch every playlist and check each one for the current video. Channels with hundreds of playlists can take 30 seconds or more on the first visit. After that, results are cached for 24 hours and load instantly.
 
-1. Open Tampermonkey dashboard
-2. Go to the **Utilities** tab
-3. Click **Check for userscript updates**
+If the in-page button ever fails to appear, you can also open the panel from the userscript manager's menu (**Tampermonkey icon → YT Playlist Finder → Find Playlists**).
 
-## Development
+## Notes
 
-The project consists of two files:
+- Uses YouTube's internal API directly — no third-party servers, no API keys, no quotas. Everything runs in your browser.
+- Works on `youtube.com`. Does not work on YouTube Music or YouTube Kids.
 
-- `yt-playlist-finder.user.js` — The main userscript (single file, no build step)
-- `yt-playlist-finder.meta.js` — Metadata-only header used by Tampermonkey for lightweight update checks (must be kept in sync with the userscript header)
+## License
+
+[MIT](LICENSE) © Brandon123b
