@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YT Playlist Finder
 // @namespace    https://github.com/Brandon123b/YT-Playlist-Finder
-// @version      0.9.1
+// @version      1.0.0
 // @description  Find every playlist on a YouTube channel that contains the video you're watching
 // @author       Brandon123b
 // @match        https://www.youtube.com/*

@@ -7,7 +7,7 @@
 [![Install](https://img.shields.io/badge/install-yt--playlist--finder.user.js-3ea6ff?logo=youtube&logoColor=white)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Demo.gif" alt="YT Playlist Finder demo" width="720">
+  <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Demo.gif" alt="YT Playlist Finder demo" width="850">
 </p>
 
 ## What it does
