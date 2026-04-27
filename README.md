@@ -23,7 +23,7 @@ Click the button next to **Like / Share** on any video, and a panel opens listin
 - Find every playlist on a channel that contains the current video
 - Browse and search the channel's full playlist library
 - Click a matched playlist to keep watching the video *inside* that playlist
-- Caches results for 24 hours — repeat visits load instantly
+- Caches results locally — repeat visits load instantly
 - No API key, no setup, no configuration
 
 ## Screenshots
@@ -60,7 +60,7 @@ Click the playlist-icon button on any YouTube video.
 - The **All** tab shows every playlist on the channel, with search and sort.
 - Use **Refresh**, **Clear Channel**, or **Clear All** to manage cached data.
 
-> **The first scan of a channel takes a moment.** The script has to fetch every playlist and check each one for the current video. Channels with hundreds of playlists can take 30 seconds or more on the first visit. After that, results are cached for 24 hours and load instantly.
+> **The first scan of a channel takes a moment.** The script has to fetch every playlist and check each one for the current video. Channels with hundreds of playlists can take 30 seconds or more on the first visit. After that, results load instantly from cache, and a quick rescan on each new video keeps them up to date.
 
 If the in-page button ever fails to appear, you can also open the panel from the userscript manager's menu (**Tampermonkey icon → YT Playlist Finder → Find Playlists**).
 
