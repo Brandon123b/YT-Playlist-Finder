@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Greasy Fork](https://img.shields.io/greasyfork/dt/575319?label=Greasy%20Fork%20installs&color=670000)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
 [![Install](https://img.shields.io/badge/install-yt--playlist--finder.user.js-3ea6ff?logo=youtube&logoColor=white)](https://greasyfork.org/en/scripts/575319-yt-playlist-finder)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Brandon123b)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Brandon123b/YT-Playlist-Finder/main/docs/Demo.gif" alt="YT Playlist Finder demo" width="850">
@@ -68,6 +69,10 @@ If the in-page button ever fails to appear, you can also open the panel from the
 
 - Uses YouTube's internal API directly — no third-party servers, no API keys, no quotas. Everything runs in your browser.
 - Works on `youtube.com`. Does not work on YouTube Music or YouTube Kids. (Probably)
+
+## Sponsor
+
+If this saves you time, [sponsor me on GitHub](https://github.com/sponsors/Brandon123b). Every bit helps me keep building and maintaining tools like this.
 
 ## License
 
